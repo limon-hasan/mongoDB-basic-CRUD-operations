@@ -2,6 +2,9 @@
 
 A full-stack CRUD application for managing a MongoDB-backed user directory. The frontend is a server-rendered Next.js App Router app; the backend is a small Express API that talks to MongoDB Atlas.
 
+**Live app:** [mongo-db-crud-operations.vercel.app](https://mongo-db-crud-operations.vercel.app)  
+**API:** [mongo-db-crud-api.vercel.app](https://mongo-db-crud-api.vercel.app)
+
 ![Userbase landing page](simple-crud-client/docs/screenshot.png)
 
 ## Overview
