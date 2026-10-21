@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { API_BASE_URL } from "@/lib/api"
 
 interface DeleteUserButtonProps {
   id: string
@@ -39,9 +40,16 @@ export function DeleteUserButton({
     setError(null)
 
     try {
-      const res = await fetch(`http://localhost:5000/users/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/users/${id}`, {
         method: "DELETE",
       })
+
+      if (res.status === 404) {
+        setError(
+          "This user no longer exists. It may already have been deleted."
+        )
+        return
+      }
 
       if (!res.ok) {
         throw new Error(`Delete failed with status ${res.status}`)

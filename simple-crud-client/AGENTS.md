@@ -17,9 +17,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Backend dependency
 
-- Every user page/action calls `http://localhost:5000` directly; the URL is hardcoded in `app/users/page.tsx`, `app/users/[userId]/page.tsx`, `app/users/new/page.tsx`, `components/UpdateUserDialog.tsx`, and `components/delete-user-button.tsx`. There are no env vars, API routes, or server actions.
-- The API is a separate repo at `D:\simple-crud-server`. It has no dev/start script: run `node index.js` from there. It needs `.env` with `DB_USER`/`DB_PASS` and serves Mongo database `simpleCrudDB`, collection `users`.
-- Endpoints: `GET/POST /users`, `GET/PATCH/DELETE /users/:id`. UI success checks depend on Mongo result fields (`acknowledged`, `modifiedCount`, `deletedCount`).
+- Every user page/action calls the API directly through `API_BASE_URL` in `lib/api.ts`, which reads `NEXT_PUBLIC_API_URL` and falls back to `http://localhost:5000`. There are no API routes or server actions. `app/page.tsx` and `app/error.tsx` render `API_DISPLAY_HOST` from the same module.
+- The API is the sibling package in this repo at `../simple-crud-server`. Start it with `npm run dev` (watch) or `npm start`. It needs a gitignored `.env` with `DB_USER`/`DB_PASS` (see `.env.example`) and serves Mongo database `simpleCrudDB`, collection `users`.
+- Endpoints: `GET/POST /users`, `GET/PATCH/DELETE /users/:id`. Create checks `acknowledged`; delete checks `deletedCount`; both dialogs handle `404` for records that disappeared.
 - After mutations the UI calls `router.refresh()` (create redirects to `/users`); keep that pattern rather than adding `revalidatePath` unless converting to server actions.
 
 ## Next.js 16 specifics

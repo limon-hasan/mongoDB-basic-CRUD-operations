@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { API_BASE_URL } from "@/lib/api"
 import type { User } from "@/lib/types"
 
 const UpdateUserDialog = ({ user }: { user: User }) => {
@@ -34,13 +35,18 @@ const UpdateUserDialog = ({ user }: { user: User }) => {
     const updateUser = Object.fromEntries(formData.entries())
 
     try {
-      const res = await fetch(`http://localhost:5000/users/${user._id}`, {
+      const res = await fetch(`${API_BASE_URL}/users/${user._id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(updateUser),
       })
+
+      if (res.status === 404) {
+        setError("This user no longer exists. It may have been deleted.")
+        return
+      }
 
       if (!res.ok) {
         throw new Error(`Update failed with status ${res.status}`)

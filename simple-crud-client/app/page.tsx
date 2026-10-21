@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "cn"
+import { API_DISPLAY_HOST } from "@/lib/api"
 
 const endpoints = [
   { method: "GET", path: "/users", description: "List everyone" },
@@ -110,7 +111,7 @@ export default function Page() {
               <span className="size-2.5 rounded-full bg-emerald-500/60" />
             </div>
             <span className="font-mono text-[11px] text-muted-foreground">
-              localhost:5000
+              {API_DISPLAY_HOST}
             </span>
           </div>
 

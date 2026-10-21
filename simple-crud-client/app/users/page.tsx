@@ -7,12 +7,13 @@ import UserCard from "@/components/UserCard"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "cn"
+import { API_BASE_URL } from "@/lib/api"
 import type { User } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
 const UsersPage = async () => {
-  const res = await fetch("http://localhost:5000/users", {
+  const res = await fetch(`${API_BASE_URL}/users`, {
     cache: "no-store",
   })
 

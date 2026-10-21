@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { cn } from "cn"
+import { API_BASE_URL } from "@/lib/api"
 
 const NewUserPage = () => {
   const router = useRouter()
@@ -37,7 +38,7 @@ const NewUserPage = () => {
     const newUser = Object.fromEntries(formData.entries())
 
     try {
-      const res = await fetch("http://localhost:5000/users", {
+      const res = await fetch(`${API_BASE_URL}/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -3,27 +3,39 @@ import cors from "cors";
 import "dotenv/config";
 
 import { MongoClient, ObjectId } from "mongodb";
-const app = express();
+
+const { DB_USER, DB_PASS } = process.env;
 const port = process.env.PORT || 5000;
+
+if (!DB_USER || !DB_PASS) {
+  throw new Error(
+    "Missing MongoDB credentials. Set DB_USER and DB_PASS in the environment.",
+  );
+}
+
+const app = express();
 
 // middleware
 app.use(cors());
 app.use(express.json());
 
-// console.log("DB user : ", process.env.DB_USER);
-// console.log("Db password: ", process.env.DB_PASS);
-
 const client = new MongoClient(
-  `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.pcsjfdp.mongodb.net/`,
+  `mongodb+srv://${encodeURIComponent(DB_USER)}:${encodeURIComponent(DB_PASS)}@cluster0.pcsjfdp.mongodb.net/`,
+  // Fail fast instead of hanging past a Vercel Function's execution limit.
+  { serverSelectionTimeoutMS: 10_000 },
 );
 
-export async function connectToMongoDB() {
+async function connectToMongoDB() {
   try {
     await client.connect();
     console.log("You successfully connected to MongoDB!");
     return client;
-  } catch (err) {
-    console.dir(err);
+  } catch (error) {
+    console.error(
+      "Failed to connect to MongoDB. Check DB_USER and DB_PASS in the environment.",
+    );
+    console.error(error);
+    throw error;
   }
 }
 
@@ -31,59 +43,124 @@ const connectedClient = await connectToMongoDB();
 const db = connectedClient.db("simpleCrudDB");
 const users = db.collection("users");
 
+function parseObjectId(id, res) {
+  if (!ObjectId.isValid(id)) {
+    res.status(400).json({ error: "Invalid user id." });
+    return null;
+  }
+
+  return new ObjectId(id);
+}
+
+function parseUserInput(body) {
+  const name = typeof body?.name === "string" ? body.name.trim() : "";
+  const email = typeof body?.email === "string" ? body.email.trim() : "";
+
+  if (!name || !email) {
+    return null;
+  }
+
+  return { name, email };
+}
+
 app.get("/", (req, res) => {
-  res.send("SImple CRUD server is running");
+  res.send("Simple CRUD server is running");
 });
 
-// showing all user in backend API route(own created, not JSON placeholder)
+// show all users
 app.get("/users", async (req, res) => {
-  const cursor = users.find({});
-  const allUsers = await cursor.toArray();
-  res.send(allUsers); // show all user data in object form in backend server(5000)
+  const allUsers = await users.find({}).toArray();
+  res.json(allUsers);
 });
 
-// showing specific user in backend API route(own created, not JSON placeholder)
+// show a specific user
 app.get("/users/:id", async (req, res) => {
-  console.log("Params in the server : ", req.params);
+  const _id = parseObjectId(req.params.id, res);
+  if (!_id) return;
 
-  const id = req.params.id;
-  const query1 = { _id: new ObjectId(id) };
-  const result = await users.findOne(query1);
-  res.send(result);
+  const user = await users.findOne({ _id });
+
+  if (!user) {
+    res.status(404).json({ error: "User not found." });
+    return;
+  }
+
+  res.json(user);
 });
 
 app.post("/users", async (req, res) => {
-  const newUser = req.body;
+  const userInput = parseUserInput(req.body);
 
-  console.log("Adding new user: ", newUser);
+  if (!userInput) {
+    res.status(400).json({ error: "name and email are required." });
+    return;
+  }
 
-  const result = await users.insertOne(newUser);
-  res.send(result); // adding all user data in the backend server(5000) plus mongodb server
+  const result = await users.insertOne(userInput);
+  res.status(201).json(result);
 });
 
 app.patch("/users/:id", async (req, res) => {
-  const id = req.params.id;
-  const updateUser = req.body;
-  console.log(`updating user with ID:`, id, `with data: `, updateUser);
+  const _id = parseObjectId(req.params.id, res);
+  if (!_id) return;
 
-  const filter = { _id: new ObjectId(id) };
-  const options = { upsert: true };
+  const userInput = parseUserInput(req.body);
 
-  // Specify the update to set a value for those fields(name, email)
-  const updatedoc = {
-    $set: { name: updateUser.name, email: updateUser.email },
-  };
-  const result = await users.updateOne(filter, updatedoc, options);
-  res.send(result);
+  if (!userInput) {
+    res.status(400).json({ error: "name and email are required." });
+    return;
+  }
+
+  // Do not upsert: updating a deleted user must not recreate it.
+  const result = await users.updateOne({ _id }, { $set: userInput });
+
+  if (result.matchedCount === 0) {
+    res.status(404).json({ error: "User not found." });
+    return;
+  }
+
+  res.json(result);
 });
 
 app.delete("/users/:id", async (req, res) => {
-  const id = req.params.id;
-  const query = { _id: new ObjectId(id) };
-  const result = await users.deleteOne(query);
-  res.send(result);
+  const _id = parseObjectId(req.params.id, res);
+  if (!_id) return;
+
+  const result = await users.deleteOne({ _id });
+
+  if (result.deletedCount === 0) {
+    res.status(404).json({ error: "User not found." });
+    return;
+  }
+
+  res.json(result);
 });
 
-app.listen(port, () => {
-  console.log(`Your server is running at port ${port}`);
+// JSON 404 for unknown routes
+app.use((req, res) => {
+  res.status(404).json({ error: "Not found." });
 });
+
+// JSON errors, including malformed request bodies
+app.use((error, req, res, next) => {
+  console.error(error);
+
+  if (res.headersSent) {
+    return next(error);
+  }
+
+  const status = error.status ?? error.statusCode ?? 500;
+  res.status(status).json({
+    error: status >= 500 ? "Internal server error." : error.message,
+  });
+});
+
+// Vercel imports this module and runs the exported app as a Function.
+// Only bind a port for local `npm run dev` / `npm start`.
+if (!process.env.VERCEL) {
+  app.listen(port, () => {
+    console.log(`Your server is running at http://localhost:${port}`);
+  });
+}
+
+export default app;

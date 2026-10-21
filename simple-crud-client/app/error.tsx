@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowLeft, RotateCcw } from "lucide-react"
 
 import { Button, buttonVariants } from "@/components/ui/button"
 import { cn } from "cn"
+import { API_DISPLAY_HOST } from "@/lib/api"
 
 export default function Error({
   error,
@@ -31,7 +32,7 @@ export default function Error({
         <p className="mx-auto max-w-md text-sm text-pretty text-muted-foreground">
           The directory couldn&apos;t reach the API. Make sure the server at{" "}
           <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
-            localhost:5000
+            {API_DISPLAY_HOST}
           </code>{" "}
           is running, then try again.
         </p>

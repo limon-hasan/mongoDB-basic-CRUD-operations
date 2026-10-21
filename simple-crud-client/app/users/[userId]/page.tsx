@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { API_BASE_URL } from "@/lib/api"
 import type { User } from "@/lib/types"
 
 const UsersDetailsPage = async ({
@@ -23,7 +24,7 @@ const UsersDetailsPage = async ({
 }) => {
   const { userId } = await params
 
-  const res = await fetch(`http://localhost:5000/users/${userId}`, {
+  const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
     cache: "no-store",
   })
 
